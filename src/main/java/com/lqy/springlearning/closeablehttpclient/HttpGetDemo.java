@@ -1,12 +1,17 @@
 package com.lqy.springlearning.closeablehttpclient;
 
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @ClassName HttpGetDemo
@@ -17,9 +22,12 @@ import org.apache.http.util.EntityUtils;
  */
 public class HttpGetDemo {
     public static void main(String[] args) {
-        httpGet("http://localhost:8080/qw/v1/qwAgent/test");
-        System.out.println("***********************************************");
-        System.out.println(httpGet2("http://localhost:8080/qw/v1/qwAgent/test"));
+//        httpGet("http://localhost:8080/qw/v1/qwAgent/test");
+//        System.out.println("***********************************************");
+//        System.out.println(httpGet2("http://localhost:8080/qw/v1/qwAgent/test"));
+        byte[] bytes = httpGetSimple("http://localhost:8080/qw/v1/qwAgent/test");
+        System.out.println(bytes);
+        System.out.println(new String(bytes, StandardCharsets.UTF_8));
     }
 
     /**
@@ -77,6 +85,7 @@ public class HttpGetDemo {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -106,6 +115,44 @@ public class HttpGetDemo {
             } else {
                 String result = EntityUtils.toString(response.getEntity(), "UTF-8");
                 return result;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (response != null) {
+                try {
+                    response.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (httpClient != null) {
+                try {
+                    httpClient.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 下面是不设参数的简单写法
+     */
+    public static byte[] httpGetSimple(String url) {
+        CloseableHttpResponse response = null;
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        try {
+            HttpGet httpGet = new HttpGet(url);
+            response = httpClient.execute(httpGet);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                response.getEntity().writeTo(bos);
+                return bos.toByteArray();
+            } else {
+                throw new ClientProtocolException("Unexpected response status: " + statusCode);
             }
         } catch (Exception e) {
             e.printStackTrace();
